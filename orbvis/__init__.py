@@ -15,3 +15,7 @@ __version__ = "0.1.0"
 # Expose key classes/functions 
 from .band import read_band_energies_and_klist_from_PROCAR, get_tot_index_from_procar,orbvis_orbital_specific_band_data_from_PROCAR
 #from .dos import DOSPlot
+from .main import run_from_config
+
+__all__ = ['run_from_config']
+
