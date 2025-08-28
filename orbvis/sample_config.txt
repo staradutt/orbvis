@@ -1,0 +1,8 @@
+PROCAR_PATH = /home/tap21003/orbproj/orbvis/orbvis/Examples/WS2_ispin1_pbe
+ISPIN = 1
+ORBITAL_INFO = [[[0], "W", [6]], [[0], "W", [7,8]], [[1,2], "S", [1,2,3]]]
+COLOR_SCHEME = tab20
+PLOT_OPTION = 0
+SCALE = 30
+TRANSPARENCY = 60
+SAVEAS = band_output.png
