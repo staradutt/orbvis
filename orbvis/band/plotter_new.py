@@ -8,12 +8,12 @@ import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 from distinctipy import get_colors, get_hex
 
-from orbvis.band.parser import (
+from .parser import (
     read_band_energies_and_klist_from_PROCAR,
     get_tot_index_from_procar,
     orbvis_orbital_specific_band_data_from_PROCAR,
 )
-from orbvis.band.utils import (
+from .utils import (
     orbital_labels,
     clean_kpoints,
     compute_kpoint_distances,
@@ -33,9 +33,10 @@ def orbscatter(**params):
     dpi = int(params["DPI"])
     saveas = params["SAVEAS"]
     color_scheme = params["COLOR_SCHEME"]
+    efermi = params.get("EFERMI", None)
 
     num_cases = len(data)
-
+    print(params)
     # --- Color handling ---
     if isinstance(color_scheme, list):
         if len(color_scheme) < num_cases:
@@ -65,6 +66,20 @@ def orbscatter(**params):
     print("The following high symmetry points were found:\n")
     for i in hs:
         print(kl[i][1:4])
+    unicode_help = r"""
+    Enter the high-symmetry point labels separated by spaces (e.g., \u0393 X M \u0393)
+    These will be stored as raw Unicode strings (not decoded here). Common codes:
+    - \u0393 → Γ Gamma
+    - \u0394 → Δ Delta
+    - \u03a3 → Σ Sigma
+    - \u039B → Λ Lambda
+    You can also combine like: \u039B1 → Λ1
+
+    Press Enter without typing anything to use default labels: K0, K1, K2, ...
+    Or type '0' to quit — default labels will still be used.
+    """
+
+    print(unicode_help)
 
     # Prompt for labels
     label_input = input(f"Enter {len(hs)} high-symmetry labels (or press Enter for K0, K1...): ").strip()
@@ -84,7 +99,9 @@ def orbscatter(**params):
         bs_selected = bs[:, idx_selected]
     elif ispin == 2:
         bs_selected = bs[:, :, idx_selected]
-
+    if efermi is not None:
+        bs_selected = bs_selected - efermi
+    
     x_arr = reduced_data[:, 1]
 
     all_procar_data = []
@@ -113,7 +130,7 @@ def orbscatter(**params):
 
         all_procar_data.append(procar_data)
         all_labels.append(label)
-
+    
     # --- Plotting ---
     if ispin == 1:
         fig, ax = plt.subplots(figsize=(params["FIGSIZEX"], params["FIGSIZEY"]), dpi=dpi)
@@ -140,7 +157,8 @@ def orbscatter(**params):
         ax.set_ylim(ymin, ymax)
         ax.set_title(title)
         ax.set_xlabel("K-path")
-        ax.set_ylabel("Energy (eV)")
+        ylabel = r"Energy (eV)" if efermi is None else r"$E - E_f$ (eV)"
+        ax.set_ylabel(ylabel)
         plt.tight_layout()
         if saveas:
             plt.savefig(saveas, dpi=dpi)
@@ -174,16 +192,21 @@ def orbscatter(**params):
         axes[0].text(0.5, -0.15, "↑", transform=axes[0].transAxes, ha='center', va='top', fontsize=14)
         axes[1].text(0.5, -0.15, "↓", transform=axes[1].transAxes, ha='center', va='top', fontsize=14)
 
-        for ax in axes:
+        for i, ax in enumerate(axes):
             ax.set_xticks(tick_vals)
             ax.set_xticklabels(labels)
             ax.set_xlim(x_arr.min(), x_arr.max())
             ax.set_ylim(ymin, ymax)
             ax.set_xlabel("K-path")
-            ax.set_ylabel("Energy (eV)")
+            if i == 0:  # Only set y-label for the left (↑) plot
+                ylabel = r"Energy (eV)" if efermi is None else r"$E - E_f$ (eV)"
+                ax.set_ylabel(ylabel)
 
         fig.suptitle(title)
         fig.legend(handles=custom_handles, loc="lower right", framealpha=0.3)
         plt.tight_layout()
         if saveas:
-            plt.savefig
+            plt.savefig(saveas, dpi=dpi)
+            print(f"[orbplot] Saved to {saveas}")
+        else:
+            plt.show()

@@ -1,11 +1,18 @@
+import ast
+import matplotlib.cm as cm
+import numpy as np
+import re
+
+
 class VASPStyleParser:
     def __init__(self, filepath):
         self.filepath = filepath
         self.params = {
+            'MODE': 'band',
             'PROCAR_PATH': None,
             'ISPIN': 1,
             'ORBITAL_INFO': None,  # Required
-            'SCALE': 1,
+            'SCALE': 1.0,
             'TRANSPARENCY': 70,
             'EFERMI': None,
             'TITLE': 'Orbital projected Band Structure',
@@ -21,8 +28,8 @@ class VASPStyleParser:
         }
 
         self._parse()
-        self._validate()
         self._apply_default_color_scheme()
+        self._validate()
 
     def _parse(self):
         with open(self.filepath, 'r') as f:
@@ -30,6 +37,7 @@ class VASPStyleParser:
 
         buffer = ""
         parsing_key = None
+        bracket_balance = 0
 
         for raw_line in lines:
             line = raw_line.strip()
@@ -39,7 +47,17 @@ class VASPStyleParser:
             if '#' in line:
                 line = line.split('#', 1)[0].strip()
 
-            if '=' in line and parsing_key is None:
+            if parsing_key:
+                buffer += ' ' + line
+                bracket_balance += line.count('[') - line.count(']')
+                if bracket_balance <= 0:
+                    self._parse_buffered_value(parsing_key, buffer)
+                    parsing_key = None
+                    buffer = ""
+                    bracket_balance = 0
+                continue
+
+            if '=' in line:
                 key, value = map(str.strip, line.split('=', 1))
                 key = key.upper()
 
@@ -49,19 +67,208 @@ class VASPStyleParser:
                 if key in ['ORBITAL_INFO', 'COLOR_SCHEME']:
                     buffer = value
                     parsing_key = key
-                    if value.endswith(']'):  # Single-line list
-                        self._parse_buffered_value(parsing_key, buffer)
+                    bracket_balance = value.count('[') - value.count(']')
+                    if bracket_balance <= 0:
+                        self._parse_buffered_value(key, buffer)
                         parsing_key = None
                         buffer = ""
+                        bracket_balance = 0
                 else:
                     self._parse_single_key(key, value)
 
-            elif parsing_key in ['ORBITAL_INFO', 'COLOR_SCHEME']:
-                buffer += line
-                if line.endswith(']'):
+    def _parse_buffered_value(self, key, buffer):
+        try:
+            parsed = ast.literal_eval(buffer)
+        except Exception:
+            # If literal_eval fails, assume raw string (unquoted)
+            parsed = buffer.strip()
+
+        if key == 'ORBITAL_INFO':
+            if not isinstance(parsed, list):
+                raise ValueError("ORBITAL_INFO must be a list.")
+            self._validate_orbital_info(parsed)
+            self.params[key] = parsed
+
+        elif key == 'COLOR_SCHEME':
+            if self.params['PLOT_OPTION'] == 0:
+                # Accept int, list of strings, or string (colormap name)
+                if isinstance(parsed, int):
+                    self.params[key] = parsed
+                elif isinstance(parsed, list) and all(isinstance(c, str) for c in parsed):
+                    self.params[key] = parsed
+                elif isinstance(parsed, str):
+                    self.params[key] = parsed
+                else:
+                    raise ValueError(
+                        "COLOR_SCHEME must be int, list of color strings, or colormap name string when PLOT_OPTION=0."
+                    )
+            elif self.params['PLOT_OPTION'] == 1:
+                if not isinstance(parsed, str):
+                    raise ValueError(
+                        "COLOR_SCHEME must be a colormap name string when PLOT_OPTION=1."
+                    )
+                self.params[key] = parsed
+
+    def _parse_single_key(self, key, value):
+        # Try to parse numerics safely, fallback to string for others
+        if key in ['ISPIN', 'PLOT_OPTION']:
+            try:
+                self.params[key] = int(value)
+            except ValueError:
+                raise ValueError(f"{key} must be an integer.")
+
+        elif key in ['YMIN', 'YMAX', 'FIGSIZEX', 'FIGSIZEY', 'DPI', 'LINEWIDTH', 'TRANSPARENCY', 'SCALE', 'EFERMI']:
+            try:
+                self.params[key] = float(value)
+            except ValueError:
+                raise ValueError(f"{key} must be a numerical value.")
+
+        elif key == 'MODE':
+            val = value.strip().lower()
+            if val not in ['band', 'dos', 'dual']:
+                raise ValueError("MODE must be one of: 'band', 'dos', or 'dual'")
+            self.params[key] = val
+
+        elif key == 'SAVEAS':
+            val = value.strip()
+            if not (val.lower().endswith('.jpg') or val.lower().endswith('.png')):
+                raise ValueError("SAVEAS must end with .jpg or .png")
+            self.params[key] = val
+
+        else:
+            # Default fallback for any other key
+            # Try to literal_eval, else treat as string
+            try:
+                parsed = ast.literal_eval(value)
+                self.params[key] = parsed
+            except Exception:
+                self.params[key] = value.strip()
+
+    def _validate_orbital_info(self, value):
+        if not isinstance(value, list):
+            raise ValueError("ORBITAL_INFO must be a list.")
+
+        for item in value:
+            if not (isinstance(item, (list, tuple)) and len(item) == 3):
+                raise ValueError("Each ORBITAL_INFO entry must be [atom_indices, element, orbital_indices].")
+
+            atom_ids, element, orbitals = item
+
+            if not (isinstance(atom_ids, list) and all(isinstance(i, int) for i in atom_ids)):
+                raise ValueError("atom_indices must be a list of integers.")
+
+            if not isinstance(element, str):
+                raise ValueError("element must be a string.")
+
+            if not (isinstance(orbitals, list) and all(isinstance(i, int) for i in orbitals)):
+                raise ValueError("orbital_indices must be a list of integers.")
+
+    def _validate(self):
+        if self.params['ORBITAL_INFO'] is None:
+            raise ValueError("ORBITAL_INFO is required and cannot be None.")
+
+        if self.params['PLOT_OPTION'] not in [0, 1]:
+            raise ValueError("PLOT_OPTION must be 0 or 1.")
+
+        cs = self.params['COLOR_SCHEME']
+        if cs is None:
+            raise ValueError("COLOR_SCHEME must be defined.")
+        mode = self.params.get('MODE', 'band')
+        if mode not in ['band', 'dos', 'dual']:
+            raise ValueError("MODE must be one of: 'band', 'dos', or 'dual'")
+        if self.params['PLOT_OPTION'] == 1:
+            # Must be a string colormap
+            if not isinstance(cs, str) or not hasattr(cm, cs):
+                raise ValueError(f"COLOR_SCHEME must be a valid matplotlib colormap name string (e.g. 'plasma') when PLOT_OPTION = 1.")
+        elif isinstance(cs, str):
+            # If PLOT_OPTION == 0 and string is given, validate it's a valid colormap
+            if not hasattr(cm, cs):
+                raise ValueError(f"'{cs}' is not a valid matplotlib colormap name.")
+
+    def _apply_default_color_scheme(self):
+        if self.params['COLOR_SCHEME'] is None:
+            self.params['COLOR_SCHEME'] = "tab20" if self.params['PLOT_OPTION'] == 0 else "plasma"
+
+    def get(self, key):
+        return self.params.get(key.upper())
+
+    def as_dict(self):
+        return self.params.copy()
+
+
+class VASPStyleParser2:
+    def __init__(self, filepath):
+        self.filepath = filepath
+        self.params = {
+            'MODE': 'band',
+            'PROCAR_PATH': None,
+            'ISPIN': 1,
+            'ORBITAL_INFO': None,  # Required
+            'SCALE': 1.0,
+            'TRANSPARENCY': 70,
+            'EFERMI': None,
+            'TITLE': 'Orbital projected Band Structure',
+            'FIGSIZEX': 10,
+            'FIGSIZEY': 6,
+            'PLOT_OPTION': 0,  # 0 for scatter, 1 for parametric
+            'COLOR_SCHEME': None,  # Required validation later
+            'YMIN': -5.0,
+            'YMAX': 5.0,
+            'LINEWIDTH': 1.0,
+            'DPI': 300,
+            'SAVEAS': 'orbband.jpg',
+        }
+
+        self._parse()
+        self._apply_default_color_scheme()
+        self._validate()
+
+    def _parse(self):
+        with open(self.filepath, 'r') as f:
+            lines = f.readlines()
+
+        buffer = ""
+        parsing_key = None
+        bracket_balance = 0
+
+        for raw_line in lines:
+            line = raw_line.strip()
+            if not line or line.startswith('#'):
+                continue
+
+            if '#' in line:
+                line = line.split('#', 1)[0].strip()
+
+            if parsing_key:
+                buffer += ' ' + line
+                # Adjust bracket count
+                bracket_balance += line.count('[') - line.count(']')
+                if bracket_balance <= 0:
                     self._parse_buffered_value(parsing_key, buffer)
                     parsing_key = None
                     buffer = ""
+                    bracket_balance = 0
+                continue
+
+            if '=' in line:
+                key, value = map(str.strip, line.split('=', 1))
+                key = key.upper()
+
+                if key not in self.params:
+                    raise ValueError(f"Unknown config key: {key}")
+
+                if key in ['ORBITAL_INFO', 'COLOR_SCHEME']:
+                    buffer = value
+                    parsing_key = key
+                    bracket_balance = value.count('[') - value.count(']')
+                    if bracket_balance <= 0:
+                        self._parse_buffered_value(key, buffer)
+                        parsing_key = None
+                        buffer = ""
+                        bracket_balance = 0
+                else:
+                    self._parse_single_key(key, value)
+
 
     def _parse_buffered_value(self, key, buffer):
         try:
@@ -89,20 +296,20 @@ class VASPStyleParser:
                 self.params[key] = parsed.strip()
                 
     def _parse_single_key(self, key, value):
-        if key in ['ISPIN', 'PLOT_OPTION', 'SCALE']:
+        print(f"Parsing key: {key}, value: {value}")
+        if key in ['ISPIN', 'PLOT_OPTION']:
             self.params[key] = int(value)
 
-        elif key in ['YMIN', 'YMAX', 'FIGSIZEX', 'FIGSIZEY', 'DPI', 'LINEWIDTH', 'TRANSPARENCY']:
+        elif key in ['YMIN', 'YMAX', 'FIGSIZEX', 'FIGSIZEY', 'DPI', 'LINEWIDTH', 'TRANSPARENCY','SCALE','EFERMI']:
             try:
                 self.params[key] = float(value)
             except ValueError:
                 raise ValueError(f"{key} must be a numerical value.")
-
-        elif key == 'EFERMI':
-            try:
-                self.params[key] = float(value)
-            except ValueError:
-                raise ValueError("EFERMI must be a float.")
+        elif key == 'MODE':
+            val = value.strip().lower()
+            if val not in ['band', 'dos', 'dual']:
+                raise ValueError("MODE must be one of: 'band', 'dos', or 'dual'")
+            self.params[key] = val
 
         elif key == 'SAVEAS':
             val = value.strip()
@@ -165,7 +372,203 @@ class VASPStyleParser:
         cs = self.params['COLOR_SCHEME']
         if cs is None:
             raise ValueError("COLOR_SCHEME must be defined.")
+        mode = self.params.get('MODE', 'band')
+        if mode not in ['band', 'dos', 'dual']:
+            raise ValueError("MODE must be one of: 'band', 'dos', or 'dual'")
+        if self.params['PLOT_OPTION'] == 1:
+            # Must be a string colormap
+            if not isinstance(cs, str) or not hasattr(cm, cs):
+                raise ValueError(f"COLOR_SCHEME must be a valid matplotlib colormap name string (e.g. 'plasma') when PLOT_OPTION = 1.")
+        elif isinstance(cs, str):
+            # If PLOT_OPTION == 0 and string is given, validate it's a valid colormap
+            if not hasattr(cm, cs):
+                raise ValueError(f"'{cs}' is not a valid matplotlib colormap name.")
+    
+    def _apply_default_color_scheme(self):
+        if self.params['COLOR_SCHEME'] is None:
+            self.params['COLOR_SCHEME'] = "tab20" if self.params['PLOT_OPTION'] == 0 else "plasma"
 
+    def get(self, key):
+        return self.params.get(key.upper())
+
+    def as_dict(self):
+        return self.params.copy()
+class VASPStyleParser1:
+    def __init__(self, filepath):
+        self.filepath = filepath
+        self.params = {
+            'MODE': 'band',
+            'PROCAR_PATH': None,
+            'ISPIN': 1,
+            'ORBITAL_INFO': None,  # Required
+            'SCALE': 1.0,
+            'TRANSPARENCY': 70,
+            'EFERMI': None,
+            'TITLE': 'Orbital projected Band Structure',
+            'FIGSIZEX': 10,
+            'FIGSIZEY': 6,
+            'PLOT_OPTION': 0,  # 0 for scatter, 1 for parametric
+            'COLOR_SCHEME': None,  # Required validation later
+            'YMIN': -5.0,
+            'YMAX': 5.0,
+            'LINEWIDTH': 1.0,
+            'DPI': 300,
+            'SAVEAS': 'orbband.jpg',
+        }
+
+        self._parse()
+        self._apply_default_color_scheme()
+        self._validate()
+
+    def _parse(self):
+        with open(self.filepath, 'r') as f:
+            lines = f.readlines()
+
+        buffer = ""
+        parsing_key = None
+
+        for raw_line in lines:
+            line = raw_line.strip()
+            if not line or line.startswith('#'):
+                continue
+
+            if '#' in line:
+                line = line.split('#', 1)[0].strip()
+
+            # Handling multi-line buffer mode
+            if parsing_key:
+                buffer += ' ' + line
+                if line.endswith(']'):
+                    self._parse_buffered_value(parsing_key, buffer)
+                    parsing_key = None
+                    buffer = ""
+                continue  # Still in buffer mode, skip further processing
+
+            # Normal key=value parsing
+            if '=' in line:
+                key, value = map(str.strip, line.split('=', 1))
+                key = key.upper()
+
+                if key not in self.params:
+                    raise ValueError(f"Unknown config key: {key}")
+
+                if key in ['ORBITAL_INFO', 'COLOR_SCHEME']:
+                    buffer = value
+                    if value.endswith(']'):
+                        self._parse_buffered_value(key, buffer)
+                        parsing_key = None
+                        buffer = ""
+                    else:
+                        parsing_key = key
+                else:
+                    self._parse_single_key(key, value)
+
+
+    def _parse_buffered_value(self, key, buffer):
+        try:
+            parsed = ast.literal_eval(buffer)
+        except Exception:
+            raise ValueError(f"Failed to parse {key}. Check syntax.")
+
+        if key == 'ORBITAL_INFO':
+            self._validate_orbital_info(parsed)
+            self.params[key] = parsed
+
+        elif key == 'COLOR_SCHEME':
+            if self.params['PLOT_OPTION'] == 0:
+                if isinstance(parsed, int):
+                    self.params[key] = parsed
+                elif isinstance(parsed, list) and all(isinstance(c, str) for c in parsed):
+                    self.params[key] = parsed
+                elif isinstance(parsed, str):
+                    self.params[key] = parsed.strip()
+                else:
+                    raise ValueError("COLOR_SCHEME must be an int, list of color strings, or a valid colormap name when PLOT_OPTION = 0.")
+            elif self.params['PLOT_OPTION'] == 1:
+                if not isinstance(parsed, str):
+                    raise ValueError("COLOR_SCHEME must be a valid colormap name string when PLOT_OPTION = 1.")
+                self.params[key] = parsed.strip()
+                
+    def _parse_single_key(self, key, value):
+        print(f"Parsing key: {key}, value: {value}")
+        if key in ['ISPIN', 'PLOT_OPTION']:
+            self.params[key] = int(value)
+
+        elif key in ['YMIN', 'YMAX', 'FIGSIZEX', 'FIGSIZEY', 'DPI', 'LINEWIDTH', 'TRANSPARENCY','SCALE','EFERMI']:
+            try:
+                self.params[key] = float(value)
+            except ValueError:
+                raise ValueError(f"{key} must be a numerical value.")
+        elif key == 'MODE':
+            val = value.strip().lower()
+            if val not in ['band', 'dos', 'dual']:
+                raise ValueError("MODE must be one of: 'band', 'dos', or 'dual'")
+            self.params[key] = val
+
+        elif key == 'SAVEAS':
+            val = value.strip()
+            if not (val.lower().endswith('.jpg') or val.lower().endswith('.png')):
+                raise ValueError("SAVEAS must end with .jpg or .png")
+            self.params[key] = val
+
+        elif key == 'COLOR_SCHEME':
+            if self.params['PLOT_OPTION'] == 0:
+                try:
+                    parsed = ast.literal_eval(value)
+                    if isinstance(parsed, int):
+                        self.params[key] = parsed
+                    elif isinstance(parsed, list) and all(isinstance(c, str) for c in parsed):
+                        self.params[key] = parsed
+                    elif isinstance(parsed, str):
+                        self.params[key] = parsed.strip()
+                    else:
+                        raise ValueError
+                except Exception:
+                    # Fallback to treating it as a simple colormap string (e.g. tab20)
+                    self.params[key] = value.strip()
+            else:
+                # PLOT_OPTION == 1: only a colormap name string is allowed
+                if not isinstance(value, str):
+                    raise ValueError("COLOR_SCHEME must be a colormap name string when PLOT_OPTION = 1.")
+                self.params[key] = value.strip()
+
+        else:
+            self.params[key] = value
+
+    def _validate_orbital_info(self, value):
+        if not isinstance(value, list):
+            raise ValueError("ORBITAL_INFO must be a list.")
+
+        for item in value:
+            if not (isinstance(item, (list, tuple)) and len(item) == 3):
+                raise ValueError("Each ORBITAL_INFO entry must be [atom_indices, element, orbital_indices].")
+
+            atom_ids, element, orbitals = item
+
+            if not (isinstance(atom_ids, list) and all(isinstance(i, int) for i in atom_ids)):
+                raise ValueError("atom_indices must be a list of integers.")
+
+            if not isinstance(element, str):
+                raise ValueError("element must be a string.")
+
+            if not (isinstance(orbitals, list) and all(isinstance(i, int) for i in orbitals)):
+                raise ValueError("orbital_indices must be a list of integers.")
+
+
+
+    def _validate(self):
+        if self.params['ORBITAL_INFO'] is None:
+            raise ValueError("ORBITAL_INFO is required and cannot be None.")
+
+        if self.params['PLOT_OPTION'] not in [0, 1]:
+            raise ValueError("PLOT_OPTION must be 0 or 1.")
+
+        cs = self.params['COLOR_SCHEME']
+        if cs is None:
+            raise ValueError("COLOR_SCHEME must be defined.")
+        mode = self.params.get('MODE', 'band')
+        if mode not in ['band', 'dos', 'dual']:
+            raise ValueError("MODE must be one of: 'band', 'dos', or 'dual'")
         if self.params['PLOT_OPTION'] == 1:
             # Must be a string colormap
             if not isinstance(cs, str) or not hasattr(cm, cs):
@@ -361,127 +764,3 @@ def orbvis_orbital_specific_band_data_from_PROCAR(file_path,ion_index,orbital_in
 
 
     return band_data
-
-class VASPStyleParser:
-    def __init__(self, filepath):
-        self.filepath = filepath
-        self.params = {
-            'PROCAR_PATH': None,
-            'ISPIN': 1,
-            'ORBITAL_INFO': None,  #Required
-            'SCALE': 1,
-            'TRANSPARENCY':70,
-            'EFERMI': None,
-            'TITLE': 'Orbital projected Band Structure',
-            'FIGSIZEX': 10,
-            'FIGSIZEY': 6,
-            'PLOT_OPTION': 0, #0 for scatter 1 for parametric
-            'COLOR_SCHEME': None,  # Required validation later
-            'YMIN': -5.0,
-            'YMAX': 5.0,
-            'LINEWIDTH': 1.0,
-            'DPI': 300,
-            'SAVEAS': 'orbband.jpg',
-            
-        }
-        self._parse()
-        self._validate()
-        self._apply_default_color_scheme()
-    def _parse(self):
-        with open(self.filepath, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith('#'):
-                    continue
-
-                # Remove inline comments , only keep stuff before first inline comment 
-                
-                if '#' in line:
-                    line = line.split('#', 1)[0].strip()
-                #after splitting the comment also if there are invalid inputs without proper key value assignment
-                #it will catch them
-                if not line or '=' not in line:
-                    continue
-
-                key, value = map(str.strip, line.split('=', 1))#str strip to remove white spaces before after equal to sign
-                
-                key = key.upper()#if user enters lowercase
-
-                if key not in self.params:
-                    raise ValueError(f"Unknown config key: {key}. Please enter proper config key.")
-
-                # PARSIng loGiC
-                if key =='ORBITAL_INFO':
-                    try:
-                        self.params[key] = ast.literal_eval(value)
-                        if not isinstance(self.params[key], list):
-                            raise ValueError
-                    except Exception:
-                        raise ValueError("ORBITAL_INFO must have a valid nested python list type structure.")
-                
-                
-                elif key == 'COLOR_SCHEME':
-                    if self.params['PLOT_OPTION'] == 0:
-                        try:
-                            val = ast.literal_eval(value)
-
-                            # single integer case
-                            if isinstance(val, int):
-                                self.params[key] = val
-
-                            #second case: list of strings (color names)
-                            elif isinstance(val, list) and all(isinstance(v, str) for v in val):
-                                self.params[key] = val
-
-                            else:
-                                raise ValueError
-                        except Exception:
-                            raise ValueError(
-                                "COLOR_SCHEME must be either a single integer or a list of color strings when PLOT_OPTION is 0."
-                            )
-                    else:
-                        # When PLOT_OPTION is 1, it must be a matplotlib colormap string
-                        self.params[key] = value.strip()
-                elif key in ['ISPIN', 'PLOT_OPTION','SCALE']:
-                    self.params[key] = int(value)
-                elif key in ['YMIN', 'YMAX', 'FIGSIZEX', 'FIGSIZEY','DPI','LINEWIDTH','TRANSPARENCY']:
-                    try:
-                        self.params[key] = float(value)
-                    except ValueError:
-                        raise ValueError(f"{key} must be a numerical value.")
-                elif key == 'EFERMI':
-                    try:
-                        self.params[key] = float(value)
-                    except ValueError:
-                        raise ValueError("EFERMI must be a float if provided.")
-                elif key == 'SAVEAS':
-                    val = value.strip()
-                    if not (val.lower().endswith('.jpg') or val.lower().endswith('.png')):
-                        raise ValueError("SAVEAS must end with .jpg or .png")
-                    self.params[key] = val
-                else:
-                    self.params[key] = value
-    
-    def _validate(self):
-        if self.params['ORBITAL_INFO'] is None:
-            raise ValueError("ORBITAL_INFO is Required and cannot be None.")
-
-        if self.params['PLOT_OPTION'] not in [0, 1]:
-            raise ValueError("PLOT_OPTION must be 0 or 1.")
-
-        if self.params['COLOR_SCHEME'] is None:
-            raise ValueError("COLOR_SCHEME must be defined.")
-
-        if self.params['PLOT_OPTION'] == 1:
-            if not isinstance(self.params['COLOR_SCHEME'], str):
-                raise ValueError("When PLOT_OPTION is 1, COLOR_SCHEME must be a valid colormap name.")
-    
-    def _apply_default_color_scheme(self):
-        if self.params['COLOR_SCHEME'] is None:
-            self.params['COLOR_SCHEME'] = 0 if self.params['PLOT_OPTION'] == 0 else "plasma"
-    #utility functions to be called later in the code for easy calling
-    def get(self, key):
-        return self.params.get(key.upper())
-
-    def as_dict(self):
-        return self.params.copy()
