@@ -1,1 +1,1 @@
-from .plotter import dosplot
+from .plotter import plot_pdos

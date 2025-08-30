@@ -29,7 +29,7 @@ def orbscatter(**params):
     title = params["TITLE"]
     ymin = params["YMIN"]
     ymax = params["YMAX"]
-    linewidth = params["LINEWIDTH"]
+    linewidth = params["BS_LINEWIDTH"]
     dpi = int(params["DPI"])
     saveas = params["SAVEAS"]
     color_scheme = params["COLOR_SCHEME"]
@@ -39,13 +39,29 @@ def orbscatter(**params):
     print(params)
     # --- Color handling ---
     if isinstance(color_scheme, list):
-        if len(color_scheme) < num_cases:
-            print(f"[orbplot] Provided {len(color_scheme)} colors, but {num_cases} are needed. Adding with distinctipy.")
-            extra = get_colors(num_cases - len(color_scheme))
-            color_scheme.extend([get_hex(c) for c in extra])
-        elif len(color_scheme) > num_cases:
-            print(f"[orbplot] More colors than needed. Truncating to {num_cases}.")
-            color_scheme = color_scheme[:num_cases]
+        processed_colors = []
+        for c in color_scheme:
+            if isinstance(c, str) or isinstance(c, int):  # support unquoted hex
+                c_str = str(c).strip()
+                if not c_str.startswith("#") and len(c_str) in [6, 3]:  # likely a hex without #
+                    c_str = f"#{c_str}"
+                try:
+                    hex_color = mcolors.to_hex(c_str)  # validate and normalize
+                    processed_colors.append(hex_color)
+                except ValueError:
+                    raise ValueError(f"Invalid color in COLOR_SCHEME: {c}")
+            else:
+                raise ValueError(f"Unsupported color format in COLOR_SCHEME: {c}")
+        
+        if len(processed_colors) < num_cases:
+            print(f"[orbvis] Provided {len(processed_colors)} colors, but {num_cases} are needed. Adding with distinctipy.")
+            extra = get_colors(num_cases - len(processed_colors))
+            processed_colors.extend([get_hex(c) for c in extra])
+        elif len(processed_colors) > num_cases:
+            print(f"[orbvis] More colors than needed. Truncating to {num_cases}.")
+            processed_colors = processed_colors[:num_cases]
+        
+        color_scheme = processed_colors
     elif isinstance(color_scheme, str):
         try:
             cmap = cm.get_cmap(color_scheme)
