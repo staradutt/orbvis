@@ -1,5 +1,6 @@
 import ast
 import matplotlib.cm as cm
+from matplotlib import colors as mcolors
 import numpy as np
 import re
 
@@ -76,11 +77,22 @@ class VASPStyleParser:
                 else:
                     self._parse_single_key(key, value)
 
+    def _normalize_color(self,c):
+        if isinstance(c, str):
+            c = c.strip()
+            # Add # if it looks like a hex code without it
+            if len(c) == 6 and all(ch in '0123456789abcdefABCDEF' for ch in c):
+                c = '#' + c
+        try:
+            return mcolors.to_hex(c)
+        except Exception:
+            raise ValueError(f"Invalid color: {c}")
+
     def _parse_buffered_value(self, key, buffer):
         try:
             parsed = ast.literal_eval(buffer)
         except Exception:
-            # If literal_eval fails, assume raw string (unquoted)
+            # Fall back to raw string if it's not valid Python
             parsed = buffer.strip()
 
         if key == 'ORBITAL_INFO':
@@ -91,23 +103,24 @@ class VASPStyleParser:
 
         elif key == 'COLOR_SCHEME':
             if self.params['PLOT_OPTION'] == 0:
-                # Accept int, list of strings, or string (colormap name)
                 if isinstance(parsed, int):
-                    self.params[key] = parsed
-                elif isinstance(parsed, list) and all(isinstance(c, str) for c in parsed):
-                    self.params[key] = parsed
+                    if parsed in [0, 1]:
+                        self.params[key] = parsed
+                    else:
+                        raise ValueError("COLOR_SCHEME must be 0 (normal) or 1 (pastel) when using an integer.")
+                elif isinstance(parsed, list):
+                    try:
+                        self.params[key] = [self._normalize_color(c) for c in parsed]
+                    except ValueError as e:
+                        raise ValueError(f"Invalid color in COLOR_SCHEME list: {e}")
                 elif isinstance(parsed, str):
-                    self.params[key] = parsed
+                    self.params[key] = parsed  # Assume it's a colormap name
                 else:
-                    raise ValueError(
-                        "COLOR_SCHEME must be int, list of color strings, or colormap name string when PLOT_OPTION=0."
-                    )
+                    raise ValueError("Invalid COLOR_SCHEME type for PLOT_OPTION=0.")
             elif self.params['PLOT_OPTION'] == 1:
                 if not isinstance(parsed, str):
-                    raise ValueError(
-                        "COLOR_SCHEME must be a colormap name string when PLOT_OPTION=1."
-                    )
-                self.params[key] = parsed
+                    raise ValueError("COLOR_SCHEME must be a colormap name string when PLOT_OPTION=1.")
+                self.params[key] = parsed.strip()
 
     def _parse_single_key(self, key, value):
         # Try to parse numerics safely, fallback to string for others

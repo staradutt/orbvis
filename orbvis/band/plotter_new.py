@@ -53,8 +53,12 @@ def orbscatter(**params):
         except Exception:
             raise ValueError(f"Invalid colormap: {color_scheme}")
     elif isinstance(color_scheme, int):
-        pastel = color_scheme == 2
-        color_scheme = [get_hex(c) for c in get_colors(num_cases, pastel_factor=0.7 if pastel else 0.0)]
+        if color_scheme == 0:
+            color_scheme = [get_hex(c) for c in get_colors(num_cases)]
+        elif color_scheme == 1:
+            color_scheme = [get_hex(c) for c in get_colors(num_cases, pastel_factor=0.7)]
+        else:
+            raise ValueError("COLOR_SCHEME int value must be 0 (normal) or 1 (pastel).")
     else:
         raise ValueError("Invalid COLOR_SCHEME format.")
 
