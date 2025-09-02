@@ -34,10 +34,10 @@ def orbscatter(**params):
     saveas = params["SAVEAS"]
     color_scheme = params["COLOR_SCHEME"]
     efermi = params.get("EFERMI", None)
-
+    legend_loc = params.get("LEGEND_LOC", "lower right")
     num_cases = len(data)
     print(params)
-    # --- Color handling ---
+    # ===== Color handling =====
     if isinstance(color_scheme, list):
         processed_colors = []
         for c in color_scheme:
@@ -78,7 +78,7 @@ def orbscatter(**params):
     else:
         raise ValueError("Invalid COLOR_SCHEME format.")
 
-    # --- Data Loading ---
+    # ===== Data Loading =====
     bs, kl = read_band_energies_and_klist_from_PROCAR(path, ispin)
     tot_ind = get_tot_index_from_procar(path)
     kl_new, hs = clean_kpoints(kl)
@@ -151,7 +151,7 @@ def orbscatter(**params):
         all_procar_data.append(procar_data)
         all_labels.append(label)
     
-    # --- Plotting ---
+    # ===== Plotting =====
     if ispin == 1:
         fig, ax = plt.subplots(figsize=(params["FIGSIZEX"], params["FIGSIZEY"]), dpi=dpi)
         custom_handles = []
@@ -169,8 +169,8 @@ def orbscatter(**params):
                     color=color_scheme[i]
                 )
             custom_handles.append(Line2D([0], [0], color=color_scheme[i], marker='o', linestyle="", markersize=5, label=all_labels[i]))
-
-        ax.legend(handles=custom_handles, loc="lower right", framealpha=0.3)
+        
+        ax.legend(handles=custom_handles, loc=legend_loc, framealpha=0.3)
         ax.set_xticks(tick_vals)
         ax.set_xticklabels(labels)
         ax.set_xlim(x_arr.min(), x_arr.max())
@@ -182,7 +182,7 @@ def orbscatter(**params):
         plt.tight_layout()
         if saveas:
             plt.savefig(saveas, dpi=dpi)
-            print(f"[orbplot] Saved to {saveas}")
+            print(f"[orbvis] Saved to {saveas}")
         else:
             plt.show()
 
@@ -223,10 +223,10 @@ def orbscatter(**params):
                 ax.set_ylabel(ylabel)
 
         fig.suptitle(title)
-        fig.legend(handles=custom_handles, loc="lower right", framealpha=0.3)
+        fig.legend(handles=custom_handles, loc=legend_loc, framealpha=0.3)
         plt.tight_layout()
         if saveas:
             plt.savefig(saveas, dpi=dpi)
-            print(f"[orbplot] Saved to {saveas}")
+            print(f"[orbvis] Saved to {saveas}")
         else:
             plt.show()

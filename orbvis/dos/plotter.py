@@ -18,15 +18,15 @@ import matplotlib.colors as mcolors
 import matplotlib.cm as cm
 
 def plot_pdos(**params):
-    # --- Extract parameters directly ---
+    # ====== Extract parameters =====
     path = params["DOSCAR_PATH"]
     data = params["ORBITAL_INFO"]
     ispin = params["ISPIN"]
     sigma = params.get("SIGMA", 2.0)
     tdos_lw = params.get("TDOS_LINEWIDTH", 1.0)
     pdos_lw = params.get("PDOS_LINEWIDTH", 1.0)
-    transparency = params.get("TRANSPARENCY", 70) / 100.0
-    title = params.get("TITLE", "Projected Density of States")
+    transparency = params.get("TRANSPARENCY", 90) / 100.0
+    title = params.get("TITLE", "Orbital Projected Density of States")
     figsize_x = params.get("FIGSIZEX", 10)
     figsize_y = params.get("FIGSIZEY", 6)
     ymin = params.get("YMIN", -5)
@@ -35,10 +35,14 @@ def plot_pdos(**params):
     saveas = params.get("SAVEAS", "pdos_output.png")
     efermi = params.get("EFERMI", None)
     color_scheme = params["COLOR_SCHEME"]
+    xmin = params.get("XMIN", None)
+    xmax = params.get("XMAX", None)
+    show_tdos = params.get("SHOW_TDOS", True)
+    legend_loc = params.get("LEGEND_LOC", "best")
 
     num_cases = len(data)
 
-    # --- Handle colors ---
+    # ===== Handle colors =====
     if isinstance(color_scheme, list):
         color_scheme = [normalize_color(c) for c in color_scheme]
         if len(color_scheme) < num_cases:
@@ -63,7 +67,7 @@ def plot_pdos(**params):
     else:
         raise ValueError("Invalid COLOR_SCHEME format.")
 
-    # --- Read DOS data ---
+    # ===== Read DOS data =====
     energy_arr, tdos = read_total_dos_streamed(path, ispin)
     if efermi is None:
         efermi = read_fermi_energy_streamed(path)
@@ -89,12 +93,15 @@ def plot_pdos(**params):
         all_pdos_data.append(pdos_data)
         all_labels.append(label)
 
-    # --- Plotting ---
+    # ===== Plotting ======
     fig, ax = plt.subplots(figsize=(figsize_x, figsize_y), dpi=dpi)
 
     if ispin == 1:
-        tdos_smooth = gaussian_filter1d(tdos, sigma=sigma)
-        ax.plot(energy_arr, tdos_smooth, label="TDOS", color="black", linewidth=tdos_lw)
+        
+        if show_tdos:
+            tdos_smooth = gaussian_filter1d(tdos, sigma=sigma)
+            ax.plot(energy_arr, tdos_smooth, label="TDOS", color="black", linewidth=tdos_lw)
+
 
         for i, pdos in enumerate(all_pdos_data):
             pdos_smooth = gaussian_filter1d(pdos, sigma=sigma)
@@ -102,10 +109,11 @@ def plot_pdos(**params):
                     color=color_scheme[i], linewidth=pdos_lw, alpha=transparency)
 
     elif ispin == 2:
-        up_tdos = gaussian_filter1d(tdos[:, 0], sigma=sigma)
-        down_tdos = gaussian_filter1d(tdos[:, 1], sigma=sigma)
-        ax.plot(energy_arr, up_tdos, label="TDOS ↑", color="black", linewidth=tdos_lw)
-        ax.plot(energy_arr, -down_tdos, label="TDOS ↓", color="black", linewidth=tdos_lw)
+        if show_tdos:
+            up_tdos = gaussian_filter1d(tdos[:, 0], sigma=sigma)
+            down_tdos = gaussian_filter1d(tdos[:, 1], sigma=sigma)
+            ax.plot(energy_arr, up_tdos, label="TDOS ", color="black", linewidth=tdos_lw)
+            ax.plot(energy_arr, -down_tdos, color="black", linewidth=tdos_lw)
 
         for i, pdos in enumerate(all_pdos_data):
             up = gaussian_filter1d(pdos[:, 0], sigma=sigma)
@@ -114,14 +122,17 @@ def plot_pdos(**params):
                     color=color_scheme[i], linewidth=pdos_lw, alpha=transparency)
             ax.plot(energy_arr, -down, color=color_scheme[i], linewidth=pdos_lw, alpha=transparency)
 
-    # --- Final tweaks ---
-    ax.set_xlim(energy_arr.min(), energy_arr.max())
+    # ====== Final tweaks =====
+    if xmin is not None or xmax is not None:
+        ax.set_xlim(left=xmin, right=xmax)
+    else:
+        ax.set_xlim(energy_arr.min(), energy_arr.max())
     ax.set_ylim(ymin, ymax)
     ax.axvline(x=0.0, color='gray', linestyle='--', linewidth=0.8)
     ax.set_xlabel(r"$E - E_f$ (eV)")
     ax.set_ylabel("DOS (states/eV)")
     ax.set_title(title)
-    ax.legend(loc="best", fontsize="small", ncol=max(1, len(all_labels) // 3))
+    ax.legend(loc=legend_loc, fontsize="small", ncol=max(1, len(all_labels) // 3))
     plt.tight_layout()
     plt.savefig(saveas)
     plt.close()
