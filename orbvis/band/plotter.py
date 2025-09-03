@@ -34,9 +34,9 @@ def orbscatter(**params):
     saveas = params["SAVEAS"]
     color_scheme = params["COLOR_SCHEME"]
     efermi = params.get("EFERMI", None)
-    legend_loc = params.get("LEGEND_LOC", "lower right")
+    legend_loc = params.get("LEGEND_LOC") or "lower right"
     num_cases = len(data)
-    print(params)
+    #print(params) to test if default are loading
     # ===== Color handling =====
     if isinstance(color_scheme, list):
         processed_colors = []

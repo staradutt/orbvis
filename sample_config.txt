@@ -1,9 +1,9 @@
-MODE = band
+MODE = Band
 TITLE = Orbplot
 PROCAR_PATH = /home/tap21003/orbproj/orbvis/orbvis/Examples/WS2_ispin2_pbe/PROCAR
 ISPIN = 2
 ORBITAL_INFO = [[[0], "W", [6]], [[0], "W", [7,8]], [[1,2], "S", [1,2,3]]]
-COLOR_SCHEME = ["FFBF69","CBF3F0","2EC4B6"]
+COLOR_SCHEME = ["FFBF69","80475E","CBF3F0"]
 PLOT_OPTION = 0
 EFERMI = -1.89
 SCALE = 50

@@ -38,7 +38,7 @@ def plot_pdos(**params):
     xmin = params.get("XMIN", None)
     xmax = params.get("XMAX", None)
     show_tdos = params.get("SHOW_TDOS", True)
-    legend_loc = params.get("LEGEND_LOC", "best")
+    legend_loc = params.get("LEGEND_LOC") or "best"
 
     num_cases = len(data)
 
@@ -46,7 +46,7 @@ def plot_pdos(**params):
     if isinstance(color_scheme, list):
         color_scheme = [normalize_color(c) for c in color_scheme]
         if len(color_scheme) < num_cases:
-            print(f"[orbplot] Provided {len(color_scheme)} colors, need {num_cases}. Adding extra colors.")
+            print(f"[orbvis] Provided {len(color_scheme)} colors, need {num_cases}. Adding extra colors.")
             extra = get_colors(num_cases - len(color_scheme))
             color_scheme.extend([get_hex(c) for c in extra])
         else:
