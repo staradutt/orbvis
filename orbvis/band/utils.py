@@ -64,7 +64,7 @@ def clean_kpoints(k_point_array, angle_tolerance_deg=5.0, jump_threshold=0.2, we
     cleaned_kpoints = np.array(cleaned_kpoints)
 
     # Step 3: Detect direction changes and jumps
-    high_sym_indices = [0]  # Always include first point
+    high_sym_indices = [int(cleaned_kpoints[0][0])]  # Always include first point
 
 
 
@@ -82,7 +82,7 @@ def clean_kpoints(k_point_array, angle_tolerance_deg=5.0, jump_threshold=0.2, we
         if angle > angle_tolerance_deg or jump > jump_threshold:
             high_sym_indices.append(int(cleaned_kpoints[i][0]))
 
-    high_sym_indices.append(len(k_point_array) - 1)  # Always include last point
+    high_sym_indices.append(int(cleaned_kpoints[-1][0]))  # Always include last point  
 
     # Convert back to numpy array of list of tuples
     cleaned_kpoints = np.array([tuple(row) for row in cleaned_kpoints])
@@ -178,3 +178,71 @@ def merge_close_ticks(tick_vals, tick_labels, tol=1e-5):
     merged_labels.append(current_label)
 
     return merged_vals, merged_labels
+def insert_discontinuities(arr, discontinuity_indices):
+    """
+    Inserts NaN columns into the array at discontinuity positions.
+
+    Parameters:
+        arr (np.ndarray): Shape (bands, kpoints) or (2, bands, kpoints) if spin-polarized
+        discontinuity_indices (list or np.ndarray): Positions to insert NaNs
+
+    Returns:
+        arr_with_nans (np.ndarray): Same shape but with NaNs inserted in kpoint axis
+    """
+    if arr.ndim == 2:
+        parts = np.split(arr, discontinuity_indices, axis=1)
+        with_nans = []
+        for part in parts:
+            with_nans.append(part)
+            with_nans.append(np.full((arr.shape[0], 1), np.nan))
+        return np.concatenate(with_nans[:-1], axis=1)  # drop last dummy
+    elif arr.ndim == 3:
+        out = []
+        for spin in range(arr.shape[0]):
+            parts = np.split(arr[spin], discontinuity_indices, axis=1)
+            with_nans = []
+            for part in parts:
+                with_nans.append(part)
+                with_nans.append(np.full((arr.shape[1], 1), np.nan))
+            out.append(np.concatenate(with_nans[:-1], axis=1))
+        return np.array(out)
+    else:
+        raise ValueError("Unsupported array shape in insert_discontinuities")
+
+def merge_close_ticks(tick_vals, tick_labels, tol=1e-5):
+    """
+    Merges nearby tick positions and combines labels with '|'.
+
+    Parameters:
+        tick_vals (list of float): Tick positions
+        tick_labels (list of str): Corresponding labels
+        tol (float): Tolerance for merging
+
+    Returns:
+        merged_vals (list of float)
+        merged_labels (list of str)
+    """
+    if not tick_vals or not tick_labels or len(tick_vals) != len(tick_labels):
+        raise ValueError("tick_vals and tick_labels must be same-length non-empty lists.")
+
+    merged_vals = []
+    merged_labels = []
+
+    current_val = tick_vals[0]
+    current_label = tick_labels[0]
+
+    for i in range(1, len(tick_vals)):
+        if abs(tick_vals[i] - current_val) <= tol:
+            current_label += "|" + tick_labels[i]
+        else:
+            merged_vals.append(current_val)
+            merged_labels.append(current_label)
+            current_val = tick_vals[i]
+            current_label = tick_labels[i]
+
+    # Append final
+    merged_vals.append(current_val)
+    merged_labels.append(current_label)
+
+    return merged_vals, merged_labels
+

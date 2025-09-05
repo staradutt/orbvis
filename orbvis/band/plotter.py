@@ -17,6 +17,8 @@ from .utils import (
     orbital_labels,
     clean_kpoints,
     compute_kpoint_distances,
+    insert_discontinuities,
+    merge_close_ticks,
 )
 
 
@@ -104,7 +106,7 @@ def orbscatter(**params):
     # Prompt for labels
     label_input = input(f"Enter {len(hs)} high-symmetry labels (or press Enter for K0, K1...): ").strip()
     if label_input == "" or label_input == "0":
-        labels = [f"K{i}" for i in range(len(hs))]
+        labels = [f"K{i}" for i in range(len(hs))]#this "labels" variable stores hs labels, its different from "label" variable which stores orbital labels
     else:
         labels = [s.encode('utf-8').decode('unicode_escape') for s in label_input.split()]
         if len(labels) != len(hs):
@@ -113,6 +115,7 @@ def orbscatter(**params):
     # Prepare distance mapping
     full_data, reduced_data = compute_kpoint_distances(kl_new, x_scale=3)
     tick_vals = [dict(reduced_data)[i] for i in hs]
+    tick_vals, labels = merge_close_ticks(tick_vals, labels, tol=1e-5)
     idx_selected = reduced_data[:, 0].astype(int)
 
     if ispin == 1:
@@ -123,7 +126,14 @@ def orbscatter(**params):
         bs_selected = bs_selected - efermi
     
     x_arr = reduced_data[:, 1]
+    ##New code for handling discontinuities
+    x_arr_raw = x_arr.copy()  # Save raw version for discontinuity checks
+    discontinuity_indices = np.where(np.diff(x_arr_raw) == 0)[0] + 1
 
+    # Insert discontinuities into x_arr
+    x_arr = insert_discontinuities(x_arr.reshape(1, -1), discontinuity_indices).flatten()
+    bs_selected = insert_discontinuities(bs_selected, discontinuity_indices)
+    ##Code for handlingdiscontinuity ends
     all_procar_data = []
     all_labels = []
 
@@ -160,6 +170,9 @@ def orbscatter(**params):
 
         for i, data in enumerate(all_procar_data):
             data_k = data[:, idx_selected]
+            #New code for handling discontinuity
+            data_k = insert_discontinuities(data_k, discontinuity_indices)
+            #Code for handling discontinuity ends
             for band in range(bs_selected.shape[0]):
                 ax.scatter(
                     x_arr,
@@ -201,6 +214,10 @@ def orbscatter(**params):
         for i, data in enumerate(all_procar_data):
             up_data = data[0][:, idx_selected]
             down_data = data[1][:, idx_selected]
+            #New code for handling discontinuity
+            up_data = insert_discontinuities(data[0][:, idx_selected], discontinuity_indices)
+            down_data = insert_discontinuities(data[1][:, idx_selected], discontinuity_indices)
+            #Code for handling discontinuity ends
             for band in range(bs_selected[0].shape[0]):
                 axes[0].scatter(x_arr, bs_selected[0][band], s=scale * up_data[band], alpha=transparency / 100.0, color=color_scheme[i])
             for band in range(bs_selected[1].shape[0]):
