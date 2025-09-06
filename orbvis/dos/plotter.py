@@ -4,6 +4,8 @@ from .parser import (
     read_fermi_energy_streamed,
     read_total_dos_streamed,
     read_atom_orbital_dos_streamed,
+    read_total_dos_streamed_soc,
+    read_atom_orbital_dos_streamed_soc,
 )
 
 import numpy as np
@@ -39,6 +41,7 @@ def plot_pdos(**params):
     xmax = params.get("XMAX", None)
     show_tdos = params.get("SHOW_TDOS", True)
     legend_loc = params.get("LEGEND_LOC") or "best"
+    soc = params.get("SOC", False)
 
     num_cases = len(data)
 
@@ -68,7 +71,13 @@ def plot_pdos(**params):
         raise ValueError("Invalid COLOR_SCHEME format.")
 
     # ===== Read DOS data =====
-    energy_arr, tdos = read_total_dos_streamed(path, ispin)
+    # Start of Code updated for soc
+    #energy_arr, tdos = read_total_dos_streamed(path, ispin)
+    if soc:
+        energy_arr, tdos = read_total_dos_streamed_soc(path)
+    else:
+        energy_arr, tdos = read_total_dos_streamed(path, ispin)
+    # End of Code updated for soc
     if efermi is None:
         efermi = read_fermi_energy_streamed(path)
     energy_arr = energy_arr - efermi
@@ -83,7 +92,13 @@ def plot_pdos(**params):
 
         for i, atom in enumerate(atom_list):
             for j, orb in enumerate(orbital_list):
-                pdos_data += read_atom_orbital_dos_streamed(path, ispin, atom, orb)
+                # Start of Code updated for soc
+                #pdos_data += read_atom_orbital_dos_streamed(path, ispin, atom, orb)
+                if soc:
+                    pdos_data += read_atom_orbital_dos_streamed_soc(path, atom, orb)
+                else:
+                    pdos_data += read_atom_orbital_dos_streamed(path, ispin, atom, orb)
+                 # End of Code updated for soc
                 if i == 0:
                     if j == 0:
                         label += orbital_labels[int(orb)]
@@ -96,7 +111,7 @@ def plot_pdos(**params):
     # ===== Plotting ======
     fig, ax = plt.subplots(figsize=(figsize_x, figsize_y), dpi=dpi)
 
-    if ispin == 1:
+    if soc or ispin == 1:
         
         if show_tdos:
             tdos_smooth = gaussian_filter1d(tdos, sigma=sigma)

@@ -140,44 +140,7 @@ def compute_kpoint_distances(cleaned_kpoints, x_scale, jump_cutoff=0.25):
     reduced_data = np.array(list(zip(indices, scaled_dists)))
     return full_data, reduced_data
 
-def merge_close_ticks(tick_vals, tick_labels, tol=1e-5):
-    """
-    Merge tick values that are within `tol` of each other and combine labels.
-    This function will be used for abrupt kpoint jumps in the band structure
 
-    Parameters:
-    - tick_vals (list of float or 1d np array): Original tick x-positions
-    - tick_labels (list of str or 1d np array): Corresponding labels
-    - tol (float): Tolerance to consider two tick_vals as same
-
-    Returns:
-    - merged_vals: List of merged tick positions
-    - merged_labels: List of merged labels
-    """
-    if not tick_vals or not tick_labels or len(tick_vals) != len(tick_labels):
-        raise ValueError("tick_vals and tick_labels must be same-length lists.")
-
-    merged_vals = []
-    merged_labels = []
-
-    current_val = tick_vals[0]
-    current_label = tick_labels[0]
-
-    for i in range(1, len(tick_vals)):
-        if abs(tick_vals[i] - current_val) <= tol:
-            # Combine labels
-            current_label += "|" + tick_labels[i]
-        else:
-            merged_vals.append(current_val)
-            merged_labels.append(current_label)
-            current_val = tick_vals[i]
-            current_label = tick_labels[i]
-
-    # Append the final one
-    merged_vals.append(current_val)
-    merged_labels.append(current_label)
-
-    return merged_vals, merged_labels
 def insert_discontinuities(arr, discontinuity_indices):
     """
     Inserts NaN columns into the array at discontinuity positions.

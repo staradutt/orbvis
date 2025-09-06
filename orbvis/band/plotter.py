@@ -12,6 +12,8 @@ from .parser import (
     read_band_energies_and_klist_from_PROCAR,
     get_tot_index_from_procar,
     orbvis_orbital_specific_band_data_from_PROCAR,
+    orbvis_orbital_specific_band_data_from_PROCAR_SOC,
+    read_band_energies_and_klist_from_PROCAR_SOC,
 )
 from .utils import (
     orbital_labels,
@@ -37,6 +39,7 @@ def orbscatter(**params):
     color_scheme = params["COLOR_SCHEME"]
     efermi = params.get("EFERMI", None)
     legend_loc = params.get("LEGEND_LOC") or "lower right"
+    soc = str(params["SOC"]).lower() in ("true", "on", "1")
     num_cases = len(data)
     #print(params) to test if default are loading
     # ===== Color handling =====
@@ -81,7 +84,15 @@ def orbscatter(**params):
         raise ValueError("Invalid COLOR_SCHEME format.")
 
     # ===== Data Loading =====
-    bs, kl = read_band_energies_and_klist_from_PROCAR(path, ispin)
+
+    # Start of Code updated for soc
+    #bs, kl = read_band_energies_and_klist_from_PROCAR(path, ispin)
+    if soc:
+        bs, kl = read_band_energies_and_klist_from_PROCAR_SOC(path)
+        ispin = 1  # Force ispin to 1 for plotting logic
+    else:
+        bs, kl = read_band_energies_and_klist_from_PROCAR(path, ispin)
+    # End of of Code updated for soc
     tot_ind = get_tot_index_from_procar(path)
     kl_new, hs = clean_kpoints(kl)
 
@@ -151,7 +162,13 @@ def orbscatter(**params):
 
         for i, atom in enumerate(atom_list):
             for j, orbital in enumerate(orbital_list):
-                procar_data += orbvis_orbital_specific_band_data_from_PROCAR(path, atom, orbital, ispin)
+                # Start of Code updated for soc
+                #procar_data += orbvis_orbital_specific_band_data_from_PROCAR(path, atom, orbital, ispin)
+                if soc:
+                    procar_data += orbvis_orbital_specific_band_data_from_PROCAR_SOC(path, atom, orbital)
+                else:
+                    procar_data += orbvis_orbital_specific_band_data_from_PROCAR(path, atom, orbital, ispin)
+                # End of Code updated for soc
                 if i == 0:
                     if j == 0:
                         label += r"$tot$" if orbital == tot_ind else orbital_labels[orbital]

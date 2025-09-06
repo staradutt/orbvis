@@ -15,6 +15,7 @@ class VASPStyleParser:
             'PROCAR_PATH': None,
             'DOSCAR_PATH': None,
             'ISPIN': 1,
+            'SOC': False, 
             'ORBITAL_INFO': None,
 
             # BAND-only
@@ -138,6 +139,15 @@ class VASPStyleParser:
             if val not in ['band', 'dos']:
                 raise ValueError("MODE must be 'band' or 'dos'.")
             self.params[key] = val
+        elif key == 'SOC':
+            val = value.lower()
+            if val in ['true', '1', 'on']:
+                self.params[key] = True
+                self.params['ISPIN'] = 1  # Force ISPIN = 1 when SOC is enabled
+            elif val in ['false', '0', 'off']:
+                self.params[key] = False
+            else:
+                raise ValueError("SOC must be True, False, 1, 0, on, or off.")
         elif key == 'PLOT_OPTION':
             val = int(value)
             if val not in [0, 1]:
@@ -409,3 +419,130 @@ def orbvis_orbital_specific_band_data_from_PROCAR(file_path,ion_index,orbital_in
 
 
     return band_data
+
+
+
+def read_band_energies_and_klist_from_PROCAR_SOC(file_path):
+    """
+    Extract band energies and k-point list from PROCAR in LSORBIT (SOC) mode.
+
+    Parameters:
+    - file_path (str): Path to the PROCAR file
+
+    Returns:
+    - band_energies: np.ndarray of shape (num_band, num_kpt)
+    - klist: np.ndarray of shape (num_kpt, 5), each row = [kpt_index, kx, ky, kz, weight]
+    """
+
+    print("Orbvis is reading band energies and k-point list from PROCAR (SOC)...")
+
+    with open(file_path, 'r') as file:
+        next(file)  # Skip first line
+        header = next(file).split()
+        num_kpt = int(header[header.index("k-points:") + 1])
+        num_band = int(header[header.index("bands:") + 1])
+        # num_ions = int(header[header.index("ions:") + 1])  # Optional
+
+        band_energies = np.zeros((num_band, num_kpt))
+        klist = np.zeros((num_kpt, 5))  # [index, kx, ky, kz, weight]
+
+        current_kpt = -1
+        current_band = -1
+
+        for line in file:
+            line = line.strip()
+            if not line:
+                continue
+
+            if line.startswith("k-point"):
+                current_kpt += 1
+                current_band = -1
+
+                float_values = re.findall(r"[-+]?\d*\.\d+|\d+", line)
+                if len(float_values) >= 4:
+                    kx, ky, kz = map(float, float_values[1:4])
+                    weight = float(float_values[-1])
+                    klist[current_kpt] = [current_kpt, kx, ky, kz, weight]
+                else:
+                    raise ValueError("Invalid k-point format")
+
+            elif line.startswith("band"):
+                current_band += 1
+                try:
+                    parts = line.split()
+                    energy = float(parts[parts.index("energy") + 1])
+                except (ValueError, IndexError):
+                    energy = 0.0
+                band_energies[current_band, current_kpt] = energy
+
+    print("Orbvis is done reading PROCAR(SOC).")
+    return band_energies, klist
+
+
+
+def orbvis_orbital_specific_band_data_from_PROCAR_SOC(file_path, ion_index, orbital_index):
+    """
+    Extracts orbital-projected band structure data from a VASP PROCAR file with LSORBIT = .TRUE. (SOC).
+    Only reads the first of four projection blocks (orbital character, not spin components).
+
+    Parameters:
+    - file_path (str): Path to the PROCAR file
+    - ion_index (int): index of the ion (starting from 0)
+    - orbital_index (int): index of the orbital column (s=0, py=1, ..., x2-y2=8, tot=9)
+
+    Returns:
+    - band_data: np.ndarray of shape (num_band, num_kpt)
+    """
+    print(f"Orbvis is reading orbital {orbital_index} of atom {ion_index} from PROCAR (SOC)...")
+
+    with open(file_path, "r") as file:
+        next(file)  # Skip first comment line
+        header = next(file).split()
+        num_kpt = int(header[header.index("k-points:") + 1])
+        num_band = int(header[header.index("bands:") + 1])
+        # num_ions = int(header[header.index("ions:") + 1])  # Not used here
+
+        band_data = np.zeros((num_band, num_kpt))
+
+        current_kpt = -1
+        current_band = -1
+        ion_line_counter = 0
+        in_first_block = True
+
+        for line in file:
+            line = line.strip()
+
+            if not line:
+                continue
+
+            if line.startswith("k-point"):
+                current_kpt += 1
+                current_band = -1
+                continue
+
+            if line.startswith("band"):
+                current_band += 1
+                ion_line_counter = 0
+                in_first_block = True
+                continue
+
+            if line.startswith("ion"):
+                continue  # Skip orbital label row
+
+            if line.startswith("tot"):
+                if in_first_block:
+                    in_first_block = False  # Now entering spin-x block
+                continue  # Skip 'tot' line
+
+            if current_kpt >= 0 and current_band >= 0 and in_first_block:
+                ion_line_counter += 1
+                if ion_line_counter == ion_index + 1:
+                    try:
+                        value = float(line.split()[orbital_index + 1])  # +1 skips 'ion' index
+                    except (ValueError, IndexError):
+                        value = 0.0
+                    band_data[current_band, current_kpt] = value
+
+    print("Orbvis is done reading orbital-projected data(SOC).")
+    return band_data
+ 

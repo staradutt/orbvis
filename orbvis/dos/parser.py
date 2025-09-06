@@ -97,3 +97,67 @@ def read_atom_orbital_dos_streamed(path, ispin, atom_index, orbital_index):
 
         else:
             raise ValueError("ispin must be 1 or 2.")
+
+def read_total_dos_streamed_soc(path):
+    """
+    Read total DOS from DOSCAR with SOC (non-collinear).
+    
+    Returns:
+    - E (nedos,): energy array
+    - DOS (nedos,): total DOS array
+    """
+    print("Orbvis is reading doscar (SOC mode) to extract tdos data...")
+    with open(path, 'r') as f:
+        for _ in range(5):
+            next(f)
+
+        meta = next(f).split()
+        nedos = int(meta[2])
+
+        E = []
+        DOS = []
+
+        for _ in range(nedos):
+            parts = next(f).split()
+            E.append(float(parts[0]))
+            DOS.append(float(parts[1]))  # Only the total DOS (no up/down split)
+
+        return np.array(E), np.array(DOS)
+
+def read_atom_orbital_dos_streamed_soc(path, atom_index, orbital_index):
+    """
+    Read site- and orbital-projected DOS for SOC case.
+    
+    Returns:
+    - DOS (nedos,): total DOS for specified atom and orbital group (s=0, p=1, d=2, f=3)
+    """
+    print(f"Orbvis is reading doscar (SOC mode) to extract atom {atom_index}'s orbital {orbital_index}'s pdos data...")
+
+    with open(path, 'r') as f:
+        for _ in range(5):
+            next(f)
+
+        meta = next(f).split()
+        nedos = int(meta[2])
+
+        # Skip total DOS block
+        for _ in range(nedos):
+            next(f)
+
+        # Each atom's PDOS block: 1 header + nedos lines
+        block_size = 1 + nedos
+        skip_lines = atom_index * block_size
+
+        for _ in range(skip_lines):
+            next(f)
+
+        next(f)  # skip atom metadata line
+
+        dos = []
+        col = 1 + 4 * orbital_index  # total, mx, my, mz → each orbital has 4 columns
+
+        for _ in range(nedos):
+            parts = next(f).split()
+            dos.append(float(parts[col]))
+
+        return np.array(dos)
