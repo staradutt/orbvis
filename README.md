@@ -20,10 +20,15 @@
 - Command-line interface (CLI) support
 
 ---
+## Contact
 
+For questions, feature requests, or bug reports, please open an issue:
+
+https://github.com/staradutt/OrbVis/issues
 ## Installation
 
 ### Using pip (coming soon)
 
 ```bash
-pip install orbplot
+pip install orbvis
+
