@@ -1,15 +1,14 @@
 MODE = dos
-DOSCAR_PATH = /home/tap21003/orbproj/orbvis/orbvis/Examples/WS2_ispin2_pbe/DOSCAR
+DOSCAR_PATH = path to doscar
 ORBITAL_INFO = [[[0], "W", [6]], [[0], "W", [7,8]], [[1,2], "S", [1,2,3]]]
 ISPIN = 2
 COLOR_SCHEME = ["red", "green", "blue"]
 SIGMA = 1.0
 TDOS_LINEWIDTH = 2
 PDOS_LINEWIDTH = 1.5
-EFERMI = 5.7
 SAVEAS = dos_output.png
-YMIN = -1
-YMAX = 1
+YMIN = -2
+YMAX = 2
 TRANSPARENCY = 60
 
 

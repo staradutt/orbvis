@@ -78,10 +78,14 @@ def plot_pdos(**params):
     else:
         energy_arr, tdos = read_total_dos_streamed(path, ispin)
     # End of Code updated for soc
+    
+
     if efermi is None:
         efermi = read_fermi_energy_streamed(path)
+    print(f"[DEBUG] Fermi energy: {efermi}")
+    print(f"[DEBUG] Energy min/max (before shift): {energy_arr.min()} to {energy_arr.max()}")
     energy_arr = energy_arr - efermi
-
+    print(f"[DEBUG] Energy min/max (after shift): {energy_arr.min()} to {energy_arr.max()}")
     all_pdos_data = []
     all_labels = []
 
