@@ -6,6 +6,8 @@ OrbVis
 
 Orbital-projected band structure plotting for VASP PROCAR data.
 
+File name:orbvis/__init__.py
+
 Author: Taradutt Pattnaik
 Created: 2025-06-11
 """

@@ -1,3 +1,16 @@
+# MIT License
+# Copyright (c) 2025 Taradutt Pattnaik
+# See LICENSE file for full license information.
+"""
+OrbVis
+
+Orbital-projected band structure plotting for VASP PROCAR data.
+
+File name:orbvis/dos/parser.py
+
+Author: Taradutt Pattnaik
+Created: 2025-06-11
+"""
 import numpy as np
 def read_fermi_energy_streamed(path):
     """
@@ -6,13 +19,13 @@ def read_fermi_energy_streamed(path):
     Returns:
     - E_fermi (float): Fermi energy in eV
     """
-    print("Orbvis is reading DOSCAR to extract Fermi energy...")
+    print("[orbvis]Orbvis is reading DOSCAR to extract Fermi energy...")
     with open(path, 'r') as f:
         for _ in range(5):
             next(f)  # skip first 5 lines
         line6 = next(f).split()
         E_fermi = float(line6[3])  # 4th val is fermi energy
-        print("Fermi energy is "+ str(E_fermi))
+        print("[orbvis]Fermi energy is "+ str(E_fermi))
         return E_fermi
 
 def read_total_dos_streamed(path, ispin):
@@ -24,7 +37,7 @@ def read_total_dos_streamed(path, ispin):
     - DOS (nedos,) if ispin=1
     - DOS (nedos, 2) if ispin=2 where DOS [:,0] = up, DOS [:,1] = down
     """
-    print("Orbvis is reading doscar to extract tdos data...")
+    print("[orbvis]Orbvis is reading doscar to extract tdos data...")
     with open(path, 'r') as f:
         for _ in range(5):
             next(f)
@@ -60,7 +73,7 @@ def read_atom_orbital_dos_streamed(path, ispin, atom_index, orbital_index):
     - (nedos,) if ispin=1
     - (nedos, 2) if ispin=2 → [:,0] = up, [:,1] = down
     """
-    print("Orbvis is reading doscar to extract atom "+str(atom_index)+"'s orbital "+str(orbital_index)+"'s pdos data...")
+    print("[orbvis]Orbvis is reading doscar to extract atom "+str(atom_index)+"'s orbital "+str(orbital_index)+"'s pdos data...")
     with open(path, 'r') as f:
         for _ in range(5):
             next(f)
@@ -106,7 +119,7 @@ def read_total_dos_streamed_soc(path):
     - E (nedos,): energy array
     - DOS (nedos,): total DOS array
     """
-    print("Orbvis is reading doscar (SOC mode) to extract tdos data...")
+    print("[orbvis]Orbvis is reading doscar (SOC mode) to extract tdos data...")
     with open(path, 'r') as f:
         for _ in range(5):
             next(f)
@@ -131,7 +144,7 @@ def read_atom_orbital_dos_streamed_soc(path, atom_index, orbital_index):
     Returns:
     - DOS (nedos,): total DOS for specified atom and orbital group (s=0, p=1, d=2, f=3)
     """
-    print(f"Orbvis is reading doscar (SOC mode) to extract atom {atom_index}'s orbital {orbital_index}'s pdos data...")
+    print(f"[orbvis]Orbvis is reading doscar (SOC mode) to extract atom {atom_index}'s orbital {orbital_index}'s pdos data...")
 
     with open(path, 'r') as f:
         for _ in range(5):

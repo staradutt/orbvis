@@ -1,3 +1,16 @@
+# MIT License
+# Copyright (c) 2025 Taradutt Pattnaik
+# See LICENSE file for full license information.
+"""
+OrbVis
+
+Orbital-projected band structure plotting for VASP PROCAR data.
+
+File name:orbvis/dos/plotter.py
+
+Author: Taradutt Pattnaik
+Created: 2025-06-11
+"""
 import numpy as np
 
 from .parser import (
@@ -80,12 +93,12 @@ def plot_pdos(**params):
     # End of Code updated for soc
     
 
-    if efermi is None:
-        efermi = read_fermi_energy_streamed(path)
-    print(f"[DEBUG] Fermi energy: {efermi}")
-    print(f"[DEBUG] Energy min/max (before shift): {energy_arr.min()} to {energy_arr.max()}")
+    #if efermi is None: overwrites the value from config file
+    efermi = read_fermi_energy_streamed(path)
+    #print(f"[DEBUG] Fermi energy: {efermi}")
+    #print(f"[DEBUG] Energy min/max (before shift): {energy_arr.min()} to {energy_arr.max()}")
     energy_arr = energy_arr - efermi
-    print(f"[DEBUG] Energy min/max (after shift): {energy_arr.min()} to {energy_arr.max()}")
+    #print(f"[DEBUG] Energy min/max (after shift): {energy_arr.min()} to {energy_arr.max()}")
     all_pdos_data = []
     all_labels = []
 

@@ -1,3 +1,17 @@
+# MIT License
+# Copyright (c) 2025 Taradutt Pattnaik
+# See LICENSE file for full license information.
+"""
+OrbVis
+
+Orbital-projected band structure plotting for VASP PROCAR data.
+
+File name:orbvis/band/parser.py
+
+Author: Taradutt Pattnaik
+Created: 2025-06-11
+"""
+
 import ast
 import matplotlib.cm as cm
 from matplotlib import colors as mcolors
@@ -259,7 +273,7 @@ def read_band_energies_and_klist_from_PROCAR(file_path, ispin=1):
         Each row: [kpt_index, kx, ky, kz, weight]
     """
 
-    print("Orbvis is reading band energies and kpoint list from PROCAR ...")   
+    print("[orbvis]Orbvis is reading band energies and kpoint list from PROCAR ...")   
     with open(file_path, "r") as file:
         next(file)  # Skip first header line
         header = next(file).split()
@@ -325,7 +339,7 @@ def read_band_energies_and_klist_from_PROCAR(file_path, ispin=1):
                     break  # Finished both spin channels
                 current_kpt = -1
                 current_band = -1
-    print("Orbvis is done reading band energies and kpoint list from PROCAR")
+    print("[orbvis]Orbvis is done reading band energies and kpoint list from PROCAR")
     return band_energies, klist
 
 def get_tot_index_from_procar(path):
@@ -349,7 +363,7 @@ def orbvis_orbital_specific_band_data_from_PROCAR(file_path,ion_index,orbital_in
     Returns:
     - numpy.ndarray: Shape (num_band, num_kpt) for ispin=1, or (2, num_band, num_kpt) for ispin=2
     """
-    print("orbvis is reading orbital specific band data from PROCAR for atom "+str(ion_index)+"'s orbital "+str(orbital_index))
+    print("[orbvis]Orbvis is reading orbital specific band data from PROCAR for atom "+str(ion_index)+"'s orbital "+str(orbital_index))
     with open(file_path, "r") as file:
         next(file)  # skip first header line lm decomposed 
         header = next(file)  # read second line
@@ -434,7 +448,7 @@ def read_band_energies_and_klist_from_PROCAR_SOC(file_path):
     - klist: np.ndarray of shape (num_kpt, 5), each row = [kpt_index, kx, ky, kz, weight]
     """
 
-    print("Orbvis is reading band energies and k-point list from PROCAR (SOC)...")
+    print("[orbvis]Orbvis is reading band energies and k-point list from PROCAR (SOC)...")
 
     with open(file_path, 'r') as file:
         next(file)  # Skip first line
@@ -475,7 +489,7 @@ def read_band_energies_and_klist_from_PROCAR_SOC(file_path):
                     energy = 0.0
                 band_energies[current_band, current_kpt] = energy
 
-    print("Orbvis is done reading PROCAR(SOC).")
+    print("[orbvis]Orbvis is done reading PROCAR(SOC).")
     return band_energies, klist
 
 
@@ -493,7 +507,7 @@ def orbvis_orbital_specific_band_data_from_PROCAR_SOC(file_path, ion_index, orbi
     Returns:
     - band_data: np.ndarray of shape (num_band, num_kpt)
     """
-    print(f"Orbvis is reading orbital {orbital_index} of atom {ion_index} from PROCAR (SOC)...")
+    print(f"[orbvis]Orbvis is reading orbital {orbital_index} of atom {ion_index} from PROCAR (SOC)...")
 
     with open(file_path, "r") as file:
         next(file)  # Skip first comment line
@@ -543,6 +557,6 @@ def orbvis_orbital_specific_band_data_from_PROCAR_SOC(file_path, ion_index, orbi
                         value = 0.0
                     band_data[current_band, current_kpt] = value
 
-    print("Orbvis is done reading orbital-projected data(SOC).")
+    print("[orbvis]Orbvis is done reading orbital-projected data(SOC).")
     return band_data
  

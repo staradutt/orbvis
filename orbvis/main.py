@@ -1,3 +1,16 @@
+# MIT License
+# Copyright (c) 2025 Taradutt Pattnaik
+# See LICENSE file for full license information.
+"""
+OrbVis
+
+Orbital-projected band structure plotting for VASP PROCAR data.
+
+File name:orbvis/main.py
+
+Author: Taradutt Pattnaik
+Created: 2025-06-11
+"""
 import argparse
 from orbvis.band.parser import VASPStyleParser
 from orbvis.band.plotter import orbscatter  # 
