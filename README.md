@@ -27,7 +27,7 @@ For questions, feature requests, or bug reports, please open an issue:
 https://github.com/staradutt/OrbVis/issues
 ## Installation
 
-### Using pip (coming soon)
+### Using pip
 
 ```bash
 pip install orbvis
