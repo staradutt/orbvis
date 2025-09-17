@@ -20,11 +20,23 @@
 - Command-line interface (CLI) support
 
 ---
+## Documentation
+
+Comprehensive documentation is available in the [docs](https://github.com/staradutt/orbvis/tree/main/docs) directory of the GitHub repository.
+
+---
+
+## Examples
+
+Explore example scripts and usage scenarios in the [examples](https://github.com/staradutt/orbvis/tree/main/examples) directory.
+
+---
 ## Contact
 
 For questions, feature requests, or bug reports, please open an issue:
 
-https://github.com/staradutt/OrbVis/issues
+https://github.com/staradutt/orbvis/issues
+---
 ## Installation
 
 ### Using pip
