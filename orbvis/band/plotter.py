@@ -33,6 +33,8 @@ from .utils import (
     compute_kpoint_distances,
     insert_discontinuities,
     merge_close_ticks,
+    get_valid_xlim,
+
 )
 
 
@@ -215,7 +217,7 @@ def orbscatter(**params):
         ax.legend(handles=custom_handles, loc=legend_loc, framealpha=0.3)
         ax.set_xticks(tick_vals)
         ax.set_xticklabels(labels)
-        ax.set_xlim(x_arr.min(), x_arr.max())
+        ax.set_xlim(*get_valid_xlim(x_arr))
         ax.set_ylim(ymin, ymax)
         ax.set_title(title)
         ax.set_xlabel("K-path")
@@ -257,11 +259,12 @@ def orbscatter(**params):
         # Add "↑" and "↓" labels below each subplot
         axes[0].text(0.5, -0.15, "↑", transform=axes[0].transAxes, ha='center', va='top', fontsize=14)
         axes[1].text(0.5, -0.15, "↓", transform=axes[1].transAxes, ha='center', va='top', fontsize=14)
+       
 
         for i, ax in enumerate(axes):
             ax.set_xticks(tick_vals)
             ax.set_xticklabels(labels)
-            ax.set_xlim(x_arr.min(), x_arr.max())
+            ax.set_xlim(*get_valid_xlim(x_arr))
             ax.set_ylim(ymin, ymax)
             ax.set_xlabel("K-path")
             if i == 0:  # Only set y-label for the left (↑) plot

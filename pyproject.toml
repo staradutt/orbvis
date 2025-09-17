@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "orbvis"
-version = "1.0.1"
+version = "1.0.2"
 description = "A python package to vizualize orbital-resolved band structure and DOS"
 readme = "README.md"
 authors = [{name = "Taradutt Pattnaik"}]
@@ -22,6 +22,7 @@ dependencies = [
 orbvis = "orbvis.main:main"
 
 [project.urls]
-Homepage = "https://github.com/staradutt/OrbVis"
-Repository = "https://github.com/staradutt/OrbVis"
-Issues = "https://github.com/staradutt/OrbVis/issues"
+Repository = "https://github.com/staradutt/orbvis"
+Documentation = "https://github.com/staradutt/orbvis/tree/main/docs"
+Examples = "https://github.com/staradutt/orbvis/tree/main/examples"
+Issues = "https://github.com/staradutt/orbvis/issues"

@@ -222,3 +222,20 @@ def merge_close_ticks(tick_vals, tick_labels, tol=1e-5):
 
     return merged_vals, merged_labels
 
+def get_valid_xlim(x_arr):
+    """
+    Safely compute axis limits from x_arr, ignoring NaN or Inf.
+
+    Parameters:
+        x_arr (np.ndarray): 1D array of x values (may include NaNs)
+
+    Returns:
+        tuple: (xmin, xmax)
+
+    Raises:
+        ValueError: If no valid x values are found
+    """
+    x_clean = x_arr[~np.isnan(x_arr) & ~np.isinf(x_arr)]
+    if x_clean.size == 0:
+        raise ValueError("No valid x-axis values found (all NaN or Inf).")
+    return x_clean.min(), x_clean.max()

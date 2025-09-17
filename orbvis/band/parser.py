@@ -28,7 +28,7 @@ class VASPStyleParser:
             'MODE': 'band',
             'PROCAR_PATH': None,
             'DOSCAR_PATH': None,
-            'ISPIN': 1,
+            'ISPIN': None,
             'SOC': False, 
             'ORBITAL_INFO': None,
 
@@ -248,7 +248,15 @@ class VASPStyleParser:
                     raise ValueError("Invalid entry in COLOR_SCHEME list.")
             else:
                 raise ValueError("Invalid COLOR_SCHEME format.")
-
+       
+        if self.params['SOC']:
+            # SOC forces ISPIN = 1
+            self.params['ISPIN'] = 1
+        else:
+            if self.params['ISPIN'] is None:
+                raise ValueError("ISPIN is required unless SOC = True.")
+            if self.params['ISPIN'] not in [1, 2]:
+                raise ValueError("ISPIN must be 1 or 2.")
 
     def get(self, key):
         return self.params.get(key.upper())
