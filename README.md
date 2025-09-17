@@ -33,9 +33,7 @@ Explore example scripts and usage scenarios in the [examples](https://github.com
 ---
 ## Contact
 
-For questions, feature requests, or bug reports, please open an issue:
-
-https://github.com/staradutt/orbvis/issues
+For questions, feature requests, or bug reports, please open an issue:[issues](https://github.com/staradutt/orbvis/issues)
 ---
 ## Installation
 
