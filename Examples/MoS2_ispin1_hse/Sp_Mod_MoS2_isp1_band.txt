@@ -1,0 +1,15 @@
+MODE = Band
+TITLE = Mo d and S p orbital contributions to MoS2 monolayer bandstructure
+PROCAR_PATH = PROCAR
+ISPIN = 1
+ORBITAL_INFO = [[[0], "Mo",[4,5,7,6,8]],[[1,2], "S", [3,1,2]]]
+COLOR_SCHEME = ["e9c46a","2a9d8f"]
+PLOT_OPTION = 0
+EFERMI = -2.9
+SCALE = 100
+TRANSPARENCY = 50
+BS_LINEWIDTH = 0.1
+FIGSIZEX = 8
+FIGSIZEY = 6
+LEGEND_LOC = best
+SAVEAS = Sp_Mod_MoS2_isp1.png

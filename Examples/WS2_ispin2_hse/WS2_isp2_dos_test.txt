@@ -1,0 +1,16 @@
+MODE = dos
+DOSCAR_PATH = DOSCAR
+ORBITAL_INFO = [[[0], "W ", [4]],[[0], "W ", [6]]]#,[[0], "W ", [8]]]
+ISPIN = 2
+COLOR_SCHEME = ["blue","lightskyblue","red"]
+SIGMA = 1
+PDOS_LINEWIDTH = 1
+SAVEAS = ws2_isp2_dos_test.png
+YMIN = -1
+YMAX = 1
+XMAX = 5
+XMIN = -5
+SHOW_TDOS = False
+FIGSIZEX = 6
+FIGSIZEY = 4
+TITLE = WS2 monolayer PDOS
