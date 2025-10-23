@@ -1,0 +1,12 @@
+MODE = Band
+TITLE = Tungsten d orbital contribution to WS2 monolayer bandstructure
+PROCAR_PATH = PROCAR
+ISPIN = 2
+ORBITAL_INFO = [[[0], "W", [4]], [[0], "W", [6]], [[0], "W", [8]]]
+COLOR_SCHEME = ["blue","lightskyblue","red"]
+PLOT_OPTION = 0
+EFERMI = -2.34
+SCALE = 50
+TRANSPARENCY = 50
+BS_LINEWIDTH = 0.1
+SAVEAS = WdWS2isp2.png
