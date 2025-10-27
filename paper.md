@@ -31,7 +31,7 @@ Density Functional Theory (DFT) is a widely used computational technique in mate
 
 For example, in the *VASP* [@Kresse1996] software, setting `LORBIT = 11` in the input file (`INCAR`) instructs the program to output the projection of each electronic state onto the atomic orbitals of every atom in the system. While this orbital-resolved information provides  detailed insights into how individual atomic orbitals could be contributing to the electronic structure, it also makes the output files significantly larger and more complex to parse and visualize without specialized tools. 
 
-*orbvis*, short for orbital visualization, is a Python based command-line tool that is designed to streamline this process. It extracts, processes and visualizes orbital projected band structures and projected density of states (pDOS) for individual atoms or groups of atoms, directly from DFT output files. Currently, *orbvis* supports only VASP and operates in two modes
+*orbvis*, short for orbital visualization, is a Python based command-line tool that is designed to streamline this process. It extracts, processes and visualizes orbital projected band structures and projected density of states (pDOS) for individual atoms or groups of atoms, directly from DFT output files. Currently, *orbvis* supports only VASP and operates in two modes:
 
 - **band** (requires `PROCAR` and plots orbital-projected band structures)  
 - **dos** (requires `DOSCAR` and plots projected density of states)  
