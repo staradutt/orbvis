@@ -76,3 +76,5 @@ Rather than being a general-purpose toolkit, *orbvis* is designed to do one thin
 # Acknowledgements
 
 The authors acknowledge support from the high-performance computing center at the University of Connecticut for providing the computational resources.
+
+# References
