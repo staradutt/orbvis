@@ -1,0 +1,27 @@
+SYSTEM = Bi2Se3 Band structure (PBE + SOC)
+
+ENCUT = 300
+EDIFF = 1E-6
+
+GGA = PE
+
+
+# --- SOC ---
+LSORBIT = .TRUE.
+LNONCOLLINEAR = .TRUE.
+ICHARG = 11
+SAXIS = 0 0 1
+
+# Projections for projected band structure
+LORBIT = 11   # produces PROCAR with orbital weights
+
+NSW = 0
+IBRION = -1
+
+PREC = Accurate
+LREAL = Auto
+ADDGRID = .TRUE.
+
+LWAVE = .FALSE.
+LCHARG = .FALSE.
+
