@@ -1,0 +1,14 @@
+SYSTEM = Si8 Band Structure
+ENCUT = 300
+PREC = Accurate
+EDIFF = 1E-6
+ISMEAR = 0
+SIGMA = 0.05
+IBRION = -1
+NSW = 0
+ISPIN = 1
+LWAVE = .FALSE.       ! No need to write WAVECAR again
+LCHARG = .FALSE.      ! No need to write CHGCAR
+ICHARG = 11           ! Use CHGCAR from SCF
+LORBIT = 11           ! Needed for projected DOS / bands             ! Only one electronic step needed
+

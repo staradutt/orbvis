@@ -1,0 +1,17 @@
+MODE = Band
+TITLE = Bulk Si p orbital contribution to Band Structure
+PROCAR_PATH = PROCAR
+ISPIN = 1
+ORBITAL_INFO = [[[0,1,2,3,4,5,6,7], "Si ",[2]],[[0,1,2,3,4,5,6,7], "Si ", [3]],[[0,1,2,3,4,5,6,7],"Si ",[1]]]
+COLOR_SCHEME = ["red","green","lightskyblue"]
+PLOT_OPTION = 0
+EFERMI = 5.955
+SCALE = 100
+TRANSPARENCY = 85
+BS_LINEWIDTH = 0.05
+FIGSIZEX = 6
+FIGSIZEY = 6
+LEGEND_LOC = best
+YMAX = 4
+YMIN = -4
+SAVEAS = Si_OrbBs.png
